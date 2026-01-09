@@ -1,11 +1,11 @@
 /* eslint-disable no-underscore-dangle */
-import * as Mousetrap from 'mousetrap'
-import { Controller } from '@hotwired/stimulus'
-import { Turbo } from '@hotwired/turbo-rails'
-import { autocomplete } from '@algolia/autocomplete-js'
-import DOMPurify from 'dompurify'
-import URI from 'urijs'
-import debouncePromise from '../helpers/debounce_promise'
+import * as Mousetrap from "mousetrap";
+import { Controller } from "@hotwired/stimulus";
+import { Turbo } from "@hotwired/turbo-rails";
+import { autocomplete } from "@algolia/autocomplete-js";
+import DOMPurify from "dompurify";
+import URI from "urijs";
+import debouncePromise from "../helpers/debounce_promise";
 
 /**
  * The search controller is used in three places.
@@ -16,70 +16,70 @@ import debouncePromise from '../helpers/debounce_promise'
  */
 export default class extends Controller {
   static targets = [
-    'autocomplete',
-    'button',
-    'hiddenId',
-    'visibleLabel',
-    'clearValue',
-    'clearButton',
-  ]
+    "autocomplete",
+    "button",
+    "hiddenId",
+    "visibleLabel",
+    "clearValue",
+    "clearButton",
+  ];
 
   static values = {
     extraParams: Object,
-  }
+  };
 
-  debouncedFetch = debouncePromise(fetch, this.searchDebounce)
+  debouncedFetch = debouncePromise(fetch, this.searchDebounce);
 
-  destroyMethod
+  destroyMethod;
 
   get dataset() {
-    return this.autocompleteTarget.dataset
+    return this.autocompleteTarget.dataset;
   }
 
   get searchDebounce() {
-    return window.Avo.configuration.search_debounce
+    return window.Avo.configuration.search_debounce;
   }
 
   get translationKeys() {
-    let keys
+    let keys;
     try {
-      keys = JSON.parse(this.dataset.translationKeys)
+      keys = JSON.parse(this.dataset.translationKeys);
     } catch (error) {
-      keys = {}
+      keys = {};
     }
 
-    return keys
+    return keys;
   }
 
   get isBelongsToSearch() {
-    return this.dataset.viaAssociation === 'belongs_to'
+    return this.dataset.viaAssociation === "belongs_to";
   }
 
   get isHasManySearch() {
-    return this.dataset.viaAssociation === 'has_many'
+    return this.dataset.viaAssociation === "has_many";
   }
 
   get isGlobalSearch() {
-    return this.dataset.searchResource === 'global'
+    return this.dataset.searchResource === "global";
   }
 
   connect() {
-    const that = this
+    const that = this;
 
-    this.buttonTarget.onclick = () => this.showSearchPanel()
+    this.buttonTarget.onclick = () => this.showSearchPanel();
 
     this.clearValueTargets.forEach((target) => {
-      if (target.getAttribute('value') && this.hasClearButtonTarget) {
-        this.clearButtonTarget.classList.remove('hidden')
+      if (target.getAttribute("value") && this.hasClearButtonTarget) {
+        this.clearButtonTarget.classList.remove("hidden");
       }
-    })
+    });
 
     if (this.isGlobalSearch) {
-      Mousetrap.bind(['command+k', 'ctrl+k'], () => this.showSearchPanel())
+      Mousetrap.bind(["command+k", "ctrl+k"], () => this.showSearchPanel());
     }
 
     // This line fixes a bug where the search box would be duplicated on back navigation.
-    this.autocompleteTarget.innerHTML = ''
+    this.autocompleteTarget.innerHTML = "";
 
     const { destroy } = autocomplete({
       container: this.autocompleteTarget,
@@ -89,34 +89,38 @@ export default class extends Controller {
       },
       autoFocus: true,
       openOnFocus: true,
-      detachedMediaQuery: '',
+      detachedMediaQuery: "",
       onStateChange({ prevState, state }) {
         // If is closed and was open clear query value
         if (!state.isOpen && prevState.isOpen) {
-          state.query = ''
+          state.query = "";
         }
       },
       getSources: ({ query }) => {
-        document.body.classList.add('search-loading')
-        const endpoint = that.searchUrl(query)
+        document.body.classList.add("search-loading");
+        const endpoint = that.searchUrl(query);
 
         return that
           .debouncedFetch(endpoint)
           .then((response) => {
-            document.body.classList.remove('search-loading')
+            document.body.classList.remove("search-loading");
 
-            return response.json()
+            return response.json();
           })
-          .then((data) => Object.keys(data).map((resourceName) => that.addSource(resourceName, data[resourceName])))
+          .then((data) =>
+            Object.keys(data).map((resourceName) =>
+              that.addSource(resourceName, data[resourceName])
+            )
+          );
       },
-    })
+    });
 
     // document.addEventListener('turbo:before-render', destroy)
-    this.destroyMethod = destroy
+    this.destroyMethod = destroy;
 
     // When using search for belongs-to
-    if (this.buttonTarget.dataset.shouldBeDisabled !== 'true') {
-      this.buttonTarget.removeAttribute('disabled')
+    if (this.buttonTarget.dataset.shouldBeDisabled !== "true") {
+      this.buttonTarget.removeAttribute("disabled");
     }
   }
 
@@ -124,13 +128,13 @@ export default class extends Controller {
     // Don't leave open autocompletes around when disconnected. Otherwise it will still
     // be visible when navigating back to this page.
     if (this.destroyMethod) {
-      this.destroyMethod()
-      this.destroyMethod = null
+      this.destroyMethod();
+      this.destroyMethod = null;
     }
   }
 
   addSource(resourceName, data) {
-    const that = this
+    const that = this;
 
     return {
       sourceId: resourceName,
@@ -138,119 +142,120 @@ export default class extends Controller {
       onSelect: that.handleOnSelect.bind(that),
       templates: {
         header() {
-          return `${data.header.toUpperCase()} ${data.help}`
+          return `${data.header.toUpperCase()} ${data.help}`;
         },
         item({ item, createElement }) {
-          const children = []
+          const children = [];
 
           if (item._avatar) {
-            let classes
+            let classes;
 
             switch (item._avatar_type) {
               default:
-              case 'circle':
-                classes = 'rounded-full'
-                break
-              case 'rounded':
-                classes = 'rounded'
-                break
-              case 'square':
-                classes = 'rounded-none'
-                break
+              case "circle":
+                classes = "rounded-full";
+                break;
+              case "rounded":
+                classes = "rounded";
+                break;
+              case "square":
+                classes = "rounded-none";
+                break;
             }
 
             children.push(
-              createElement('img', {
+              createElement("img", {
                 src: item._avatar,
                 alt: item._label,
                 class: `flex-shrink-0 w-8 h-8 my-[2px] inline mr-2 ${classes}`,
-              }),
-            )
+              })
+            );
           }
 
-          const label = DOMPurify.sanitize(item._label)
+          const label = DOMPurify.sanitize(item._label);
 
           const labelChildren = [
             createElement(
-              'div',
+              "div",
               {
                 dangerouslySetInnerHTML: { __html: label },
               },
-              label,
+              label
             ),
-          ]
+          ];
 
           if (item._description) {
-            const description = DOMPurify.sanitize(item._description)
+            const description = DOMPurify.sanitize(item._description);
 
             labelChildren.push(
               createElement(
-                'div',
+                "div",
                 {
-                  class: 'aa-ItemDescription',
+                  class: "aa-ItemDescription",
                   dangerouslySetInnerHTML: { __html: description },
                 },
-                description,
-              ),
-            )
+                description
+              )
+            );
           }
 
-          children.push(createElement('div', null, labelChildren))
+          children.push(createElement("div", null, labelChildren));
 
           return createElement(
-            'div',
+            "div",
             {
-              class: 'flex',
+              class: "flex",
             },
-            children,
-          )
+            children
+          );
         },
         noResults() {
           return that.translationKeys.no_item_found.replace(
-            '%{item}',
-            resourceName,
-          )
+            "%{item}",
+            resourceName
+          );
         },
       },
-    }
+    };
   }
 
   handleOnSelect({ item }) {
     if (this.isBelongsToSearch && !item._error) {
-      this.updateFieldAttribute(this.hiddenIdTarget, 'value', item._id)
-      this.updateFieldAttribute(this.buttonTarget, 'value', this.removeHTMLTags(item._label))
+      this.updateFieldAttribute(this.hiddenIdTarget, "value", item._id);
+      this.updateFieldAttribute(
+        this.buttonTarget,
+        "value",
+        this.removeHTMLTags(item._label)
+      );
 
       if (this.hasClearButtonTarget) {
-        this.clearButtonTarget.classList.remove('hidden')
+        this.clearButtonTarget.classList.remove("hidden");
       }
     } else {
-      Turbo.visit(item._url, { action: 'advance' })
+      Turbo.visit(item._url, { action: "advance" });
     }
 
     // On searchable belongs to the class `aa-Detached` remains on the body making it unscrollable
-    document.body.classList.remove('aa-Detached')
+    document.body.classList.remove("aa-Detached");
   }
 
   searchUrl(query) {
-    const url = URI()
+    const url = URI();
 
-    return url.segment([window.Avo.configuration.root_path, ...this.searchSegments()])
+    return url
+      .segment([window.Avo.configuration.root_path, ...this.searchSegments()])
       .search(this.searchParams(encodeURIComponent(query)))
-      .readable().toString()
+      .toString();
   }
 
   searchSegments() {
-    let segments = [
-      'avo_api',
-      this.dataset.searchResource,
-      'search',
-    ]
+    let segments = ["avo_api", this.dataset.searchResource, "search"];
 
     if (this.isGlobalSearch) {
-      segments = ['avo_api', 'search']
+      segments = ["avo_api", "search"];
     }
 
-    return segments
+    return segments;
   }
 
   searchParams(query) {
@@ -259,15 +264,15 @@ export default class extends Controller {
       q: query,
       global: false,
       ...this.extraParamsValue,
-    }
+    };
 
     if (this.isGlobalSearch) {
-      params.global = true
+      params.global = true;
     }
 
     if (this.isBelongsToSearch || this.isHasManySearch) {
-      params = this.addAssociationParams(params)
-      params = this.addReflectionParams(params)
+      params = this.addAssociationParams(params);
+      params = this.addReflectionParams(params);
 
       if (this.isBelongsToSearch) {
         params = {
@@ -278,11 +283,11 @@ export default class extends Controller {
           via_parent_resource_class: this.dataset.viaParentResourceClass,
           // eslint-disable-next-line camelcase
           via_relation: this.dataset.viaRelation,
-        }
+        };
       }
     }
 
-    return params
+    return params;
   }
 
   addAssociationParams(params) {
@@ -292,9 +297,9 @@ export default class extends Controller {
       via_association: this.dataset.viaAssociation,
       // eslint-disable-next-line camelcase
       via_association_id: this.dataset.viaAssociationId,
-    }
+    };
 
-    return params
+    return params;
   }
 
   addReflectionParams(params) {
@@ -306,30 +311,32 @@ export default class extends Controller {
       via_reflection_id: this.dataset.viaReflectionId,
       // eslint-disable-next-line camelcase
       via_reflection_view: this.dataset.viaReflectionView,
-    }
+    };
 
-    return params
+    return params;
   }
 
   showSearchPanel() {
-    this.autocompleteTarget.querySelector('button').click()
+    this.autocompleteTarget.querySelector("button").click();
   }
 
   clearValue() {
-    this.clearValueTargets.map((target) => this.updateFieldAttribute(target, 'value', ''))
-    this.clearButtonTarget.classList.add('hidden')
+    this.clearValueTargets.map((target) =>
+      this.updateFieldAttribute(target, "value", "")
+    );
+    this.clearButtonTarget.classList.add("hidden");
   }
 
   // Private
 
   updateFieldAttribute(target, attribute, value) {
-    target.setAttribute(attribute, value)
-    target.dispatchEvent(new Event('input'))
+    target.setAttribute(attribute, value);
+    target.dispatchEvent(new Event("input"));
   }
 
   removeHTMLTags(str) {
-    const doc = new DOMParser().parseFromString(str, 'text/html')
+    const doc = new DOMParser().parseFromString(str, "text/html");
 
-    return doc.body.textContent || ''
+    return doc.body.textContent || "";
   }
 }
